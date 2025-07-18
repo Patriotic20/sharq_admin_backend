@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
-from sharq_models.models import StudyInfo, StudyDirection  # type: ignore
+from sharq_models.models import StudyInfo  # type: ignore
 from src.schemas.study_info import StudyInfoBase, StudyInfoResponse
 from src.schemas.study_language import StudyLanguageResponse
 from src.schemas.study_type import StudyTypeResponse
@@ -23,10 +23,9 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
             .options(
                 joinedload(StudyInfo.study_language),
                 joinedload(StudyInfo.study_form),
-                joinedload(StudyInfo.study_direction).joinedload(StudyDirection.study_form),
-                joinedload(StudyInfo.study_direction).joinedload(StudyDirection.study_language),
-                joinedload(StudyInfo.study_direction).joinedload(StudyDirection.study_type),
-                joinedload(StudyInfo.study_direction).joinedload(StudyDirection.education_type),
+                joinedload(StudyInfo.study_direction),
+                joinedload(StudyInfo.education_type),
+                joinedload(StudyInfo.study_type)
             )
             .where(StudyInfo.id == study_info_id)
         )
@@ -52,10 +51,10 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
                 study_info.study_direction, from_attributes=True
             ),
             education_type=EducationTypeResponse.model_validate(
-                study_info.study_direction.education_type, from_attributes=True
+                study_info.education_type, from_attributes=True
             ),
             study_type=StudyTypeResponse.model_validate(
-                study_info.study_direction.study_type, from_attributes=True
+                study_info.study_type, from_attributes=True
             ),
             graduate_year=study_info.graduate_year,
             certificate_path=study_info.certificate_path,
@@ -79,10 +78,9 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
             .options(
                 joinedload(StudyInfo.study_language),
                 joinedload(StudyInfo.study_form),
-                joinedload(StudyInfo.study_direction).joinedload(StudyDirection.study_form),
-                joinedload(StudyInfo.study_direction).joinedload(StudyDirection.study_language),
-                joinedload(StudyInfo.study_direction).joinedload(StudyDirection.study_type),
-                joinedload(StudyInfo.study_direction).joinedload(StudyDirection.education_type),
+                joinedload(StudyInfo.study_direction),
+                joinedload(StudyInfo.education_type),
+                joinedload(StudyInfo.study_type)
             )
             .limit(limit)
             .offset(offset)

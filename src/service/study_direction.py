@@ -1,7 +1,5 @@
 from fastapi import HTTPException, status
 from src.service import BasicCrud
-from sqlalchemy import select 
-from sqlalchemy.orm import joinedload
 from sharq_models.models import StudyDirection  #type: ignore
 from src.schemas.study_direction import (
     StudyDirectionBase,
@@ -36,56 +34,20 @@ class StudyDirectionCrud(BasicCrud[StudyDirection, StudyDirectionBase]):
         self,
         direction_id: int,
     ) -> StudyDirectionResponse:
-        stmt = (
-            select(StudyDirection)
-            .options(
-                joinedload(StudyDirection.study_form),
-                joinedload(StudyDirection.study_language),
-                joinedload(StudyDirection.study_type),
-                joinedload(StudyDirection.education_type),
-            )
-            .where(StudyDirection.id == direction_id)
-        )
-
-        result = await self.db.execute(stmt)
-        direction_data = result.scalars().first()  
-
-        if not direction_data:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Yo'nalish topilmadi"
-            )
-
-        return StudyDirectionResponse.model_validate(direction_data)
+        return await super().get_by_id(model=StudyDirection, item_id=direction_id)
 
     async def get_study_direction_all(
         self, limit: int = 100, offset: int = 0
     ) -> List[StudyDirectionResponse]:
-        stmt = (
-            select(StudyDirection)
-            .options(
-                joinedload(StudyDirection.study_form),
-                joinedload(StudyDirection.study_language),
-                joinedload(StudyDirection.study_type),
-                joinedload(StudyDirection.education_type),
-            )
-            .limit(limit)
-            .offset(offset)
-        )
-        result = await self.db.execute(stmt)
-        direction_data = result.scalars().all()
-
-        return [
-            StudyDirectionResponse.model_validate(item, from_attributes=True)
-            for item in direction_data
-        ]
+        return await super().get_all(model=StudyDirection, limit=limit , offset=offset)
         
 
     async def update_study_direction(
         self, direction_id: int, obj: StudyDirectionUpdate
     ) -> StudyDirectionResponse:
         await self.get_by_study_direction_id(direction_id)  
-        await super().update(model=StudyDirection, item_id=direction_id, obj_items=obj)
-        return await self.get_by_study_direction_id(direction_id)
+        return await super().update(model=StudyDirection, item_id=direction_id, obj_items=obj)
+        
 
     async def delete_study_direction(self, direction_id: int) -> dict:
         await self.get_by_study_direction_id(direction_id)

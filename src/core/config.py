@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     access_secret_key: str
     algorithm: str = "HS256"
+    
+    docs_username: str = "admin"
+    docs_password: str = "admin123"
 
 
     model_config = SettingsConfigDict(env_file=".env")
