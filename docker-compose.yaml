@@ -8,8 +8,6 @@ services:
     volumes:
       - .:/app
     network_mode: host
-    ports:
-      - 8082:8082
     env_file:
       - .env
     healthcheck:
