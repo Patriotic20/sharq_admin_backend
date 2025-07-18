@@ -31,7 +31,10 @@ app.add_middleware(
         "https://qabul.sharqedu.uz",
         "https://admin.sharqedu.uz",
         "https://qabul.nsumt.uz",
-        "https://marketing.nsumt.uz"
+        "https://marketing.nsumt.uz",
+        "http://dashboard.sharqedu.uz",
+        "https://dashboard.sharqedu.uz",
+        "https://www.dashboard.sharqedu.uz",
     ],
     allow_credentials=True,
     allow_methods=["*"],
