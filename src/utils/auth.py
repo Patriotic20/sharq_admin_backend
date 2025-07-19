@@ -106,7 +106,7 @@ async def get_current_user_with_role(
 def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.access_token_expire_minutes
+        days=settings.access_token_expire_minutes
     )
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(
