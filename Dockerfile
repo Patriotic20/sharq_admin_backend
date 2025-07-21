@@ -11,4 +11,4 @@ RUN pip install git+https://github.com/Patriotic20/sharq_models.git
 
 COPY . .
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8081", "--workers", "4"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8082", "--workers", "4"]

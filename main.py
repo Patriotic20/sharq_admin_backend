@@ -31,7 +31,10 @@ app.add_middleware(
         "https://qabul.sharqedu.uz",
         "https://admin.sharqedu.uz",
         "https://qabul.nsumt.uz",
-        "https://marketing.nsumt.uz"
+        "https://marketing.nsumt.uz",
+        "http://dashboard.sharqedu.uz",
+        "https://dashboard.sharqedu.uz",
+        "https://www.dashboard.sharqedu.uz",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -39,4 +42,4 @@ app.add_middleware(
 )
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=False)
+    uvicorn.run("main:app", host="0.0.0.0", port=8082, reload=False)

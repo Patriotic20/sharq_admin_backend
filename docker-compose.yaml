@@ -2,23 +2,17 @@ version: '3.8'
 
 services:
   app:
-    build: .
-    ports:
-      - "8000:8000"
-    environment:
-      - DB_HOST=db
-      - DB_PORT=5454
-      - DB_USER=sharq
-      - DB_PASSWORD=sharq
-      - DB_NAME=sharq
-    depends_on:
-      - db
-
-  db:
-    image: postgres:15
-    environment:
-      - POSTGRES_USER=sharq
-      - POSTGRES_PASSWORD=sharq
-      - POSTGRES_DB=sharq
-    ports:
-      - "5454:5432"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    network_mode: host
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
