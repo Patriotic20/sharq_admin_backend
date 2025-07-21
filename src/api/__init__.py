@@ -9,6 +9,7 @@ from .study_info import study_info_router
 from .auth import auth_router
 from .role import role_router
 from .contract import contract_router
+from .user_data import user_data_router
 
 
 api_router = APIRouter(prefix="/api")
@@ -23,5 +24,6 @@ api_router.include_router(study_info_router)
 api_router.include_router(passport_data_router)
 api_router.include_router(role_router)
 api_router.include_router(contract_router)
+api_router.include_router(user_data_router)
 
 

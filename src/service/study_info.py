@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import joinedload
+from sqlalchemy import select 
+from sqlalchemy.orm import joinedload 
 
 from sharq_models.models import StudyInfo  # type: ignore
 from src.schemas.study_info import StudyInfoBase, StudyInfoResponse
@@ -89,4 +89,5 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
         study_infos = result.scalars().all()
 
         return [self._to_response_with_names(info) for info in study_infos]
+    
 
