@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="utf-8">
+    <title>Contract Report</title>
+    <style>
+        body {
+            font-family: DejaVu Sans, sans-serif;
+            margin: 40px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .qr-container {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .qr-container img {
+            width: 150px;
+            height: 150px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Shartnoma</h1>
+    <p><strong>Shartnoma ID:</strong> {{ contract_id }}</p>
+    <p><strong>Sana:</strong> {{ date }}</p>
+    <p><strong>F.I.O:</strong> {{ fio }}</p>
+    <p><strong>Ta'lim shakli:</strong> {{ edu_form }}</p>
+    <p><strong>Ta'lim turi:</strong> {{ edu_type }}</p>
+    <p><strong>Yo'nalish:</strong> {{ edu_direction }}</p>
+    <p><strong>Davomiyligi:</strong> {{ edu_year }} yil</p>
+    <p><strong>Kontrakt narxi:</strong> {{ contract_price }} so'm</p>
+
+    {% if qr_code_path %}
+    <div class="qr-container">
+        <p><strong>QR kod orqali faylga o'tish:</strong></p>
+        <img src="{{ qr_code_path }}" alt="QR Code">
+    </div>
+    {% endif %}
+</body>
+</html>
