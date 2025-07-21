@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles 
 from src.api import api_router
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,7 +9,7 @@ from src.core.docs_auth import DocsAuthMiddleware
 app = FastAPI(title="Sharq Admissions API", description="API for the Admissions system")
 
 # Mount the uploads directory to serve static files
-# app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
 
