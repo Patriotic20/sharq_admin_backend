@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     
     docs_username: str = "admin"
     docs_password: str = "admin123"
+    
+    base_url: str
 
 
     model_config = SettingsConfigDict(env_file=".env")
