@@ -3,16 +3,20 @@ import random
 from io import BytesIO
 from uuid import uuid4
 
+from urllib.parse import urlparse
+
 import qrcode
 from fastapi import HTTPException
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
+from src.schemas.contract import ContractCreate
 from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 from weasyprint import HTML
 
 from sharq_models.models import Contract, User, StudyInfo  # type: ignore
 from src.service import BasicCrud
+from src.core.config import settings
 
 templates = Jinja2Templates(directory="src/templates")
 
@@ -20,16 +24,45 @@ templates = Jinja2Templates(directory="src/templates")
 class ReportService(BasicCrud):
     def __init__(self, db: AsyncSession):
         super().__init__(db=db)
+        self.contract_dir_url = f"{settings.base_url}/uploads/contract"
+        self.contract_dir_path = "uploads/contract"
+        self.qr_code_dir_path = "uploads/qr_codes"
 
-    async def get_contract_by_id(self, user_id: int) -> Contract:
-        contract = await super().get_by_field(Contract, "user_id", user_id)
-        if not contract:
-            raise HTTPException(status_code=404, detail="Contract not found")
-        return contract
+    async def get_contract_by_user_id(self, user_id: int):
+        return await super().get_by_field(model=Contract, field_name="user_id", field_value=user_id)
 
-    def generate_temp_file_path(self, base_dir: str, extension: str) -> str:
-        os.makedirs(base_dir, exist_ok=True)
-        return os.path.join(base_dir, f"{uuid4().hex}{extension}")
+    def generate_qr_code(self, data: str, save_path: str) -> None:
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(data)
+        qr.make(fit=True)
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        img = qr.make_image(fill="black", back_color="white")
+        img.save(save_path)
+
+    def generate_file_path(self, base_dir: str, extension: str) -> str:
+        filename = f"{uuid4().hex}{extension}"
+        full_path = os.path.join(base_dir, filename)
+        return full_path
+    
+    
+    async def create_and_add_file_path(self, base_dir: str, extension: str, user_id: int) -> Contract:
+        filename = f"{uuid4().hex}{extension}"
+        full_path = os.path.join(base_dir, filename)
+        
+        contract_data = ContractCreate(
+            user_id=user_id,
+            file_path=full_path,
+            status=True,
+            edu_course_level=1
+        )
+        return await super().create(model=Contract , obj_items=contract_data)
+        
+        
 
     async def _get_contract_data(self, user_id: int) -> Contract:
         stmt = (
@@ -82,53 +115,43 @@ class ReportService(BasicCrud):
         }
         return templates.get_template(template_name).render(context)
 
-    async def download_pdf(self, user_id: int) -> BytesIO:
-        contract = await self.get_contract_by_id(user_id)
-
-        if not contract.file_path:
-            raise HTTPException(status_code=400, detail="File path not found in contract")
-
-        html = await self.add_qr_code_in_report(user_id)
-        pdf = BytesIO()
-        HTML(string=html, base_url=".").write_pdf(pdf)
-        pdf.seek(0)
-
-        # Write to file_path (assumed from DB)
-        os.makedirs(os.path.dirname(contract.file_path), exist_ok=True)
-        with open(contract.file_path, "wb") as f:
-            f.write(pdf.read())
-        pdf.seek(0)
-
-        return pdf
-
-    async def download_3_pdf(self, user_id: int) -> BytesIO:
-        html = await self.add_qr_code_in_report(user_id, is_three=True)
-        pdf = BytesIO()
-        HTML(string=html, base_url=".").write_pdf(pdf)
-        pdf.seek(0)
-        return pdf
-
     async def add_qr_code_in_report(self, user_id: int, is_three: bool = False) -> str:
-        contract = await self.get_contract_by_id(user_id)
-        if not contract.file_path:
-            raise HTTPException(status_code=400, detail="File path not found in contract")
+        contract = await self.get_contract_by_user_id(user_id=user_id)
+        if not contract or not contract.file_path:
+            raise HTTPException(status_code=404, detail="Contract not found or file path missing")
 
-        qr_path = self.generate_temp_file_path("uploads/media/qr_codes", ".png")
-        file_url = f"http://localhost:8082/{contract.file_path}"
-        self.generate_qr_code(data=file_url, save_path=qr_path)
+        qr_path = self.generate_file_path(self.qr_code_dir_path, ".png")
+        self.generate_qr_code(data=contract.file_path, save_path=qr_path)
 
         template_name = "uchtomon.html" if is_three else "ikki.html"
-        return await self.generate_report(user_id, template_name, qr_path)
+        return await self.generate_report(user_id=user_id, template_name=template_name, qr_code_path=qr_path)
 
-    def generate_qr_code(self, data: str, save_path: str) -> None:
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=10,
-            border=4,
-        )
-        qr.add_data(data)
-        qr.make(fit=True)
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        img = qr.make_image(fill="black", back_color="white")
-        img.save(save_path)
+    async def download_pdf(self, user_id: int, is_three: bool = False) -> str:
+        contract = await self.get_contract_by_user_id(user_id=user_id)
+
+        if contract and contract.file_path:
+            file_url = contract.file_path
+        else:
+            contract = await self.create_and_add_file_path(
+                base_dir=self.contract_dir_url,
+                extension=".pdf",
+                user_id=user_id,
+            )
+            file_url = contract.file_path
+
+            html_content = await self.add_qr_code_in_report(user_id=user_id, is_three=is_three)
+            pdf = BytesIO()
+            HTML(string=html_content, base_url=".").write_pdf(pdf)
+            pdf.seek(0)
+
+            parsed_url = urlparse(file_url)
+            file_path = parsed_url.path.lstrip("/")
+
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            with open(file_path, "wb") as f:
+                f.write(pdf.read())
+            pdf.seek(0)
+
+        parsed_url = urlparse(file_url)
+        return parsed_url.path.lstrip("/")
+
