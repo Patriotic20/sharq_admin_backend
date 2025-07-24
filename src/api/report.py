@@ -16,7 +16,7 @@ def get_report_service(db: AsyncSession = Depends(get_db)):
     return ReportService(db)
 
 
-@report_router.post("/")
+@report_router.post("")
 async def generate_both_report(
     user_id: int,
     edu_course_level: int,
