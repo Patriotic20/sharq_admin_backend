@@ -7,6 +7,5 @@ class ContractBase(BaseModel):
 class ContractCreate(ContractBase):
     user_id: int
     status: bool
-    edu_course_level: int
-    
+
     
