@@ -1,36 +1,37 @@
 import os
 import random
 from uuid import uuid4
-
 from urllib.parse import urlparse
 
 import qrcode
 from fastapi import HTTPException
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
-from src.schemas.contract import ContractCreate
 from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 from weasyprint import HTML
 
+from src.schemas.contract import ContractCreate
 from sharq_models.models import Contract, User, StudyInfo  # type: ignore
 from src.service import BasicCrud
 from src.core.config import settings
 
 templates = Jinja2Templates(directory="src/templates")
 
+
 class ContractBase:
     BASE_UPLOAD_DIR = "uploads"
 
     def path_builder(self, base_dir: str, extension: str) -> str:
         return f"{self.BASE_UPLOAD_DIR}/{base_dir}/{extension}"
-    
+
     def url_builder(self, base_dir: str, extension: str) -> str:
         return f"{settings.base_url}/{self.BASE_UPLOAD_DIR}/{base_dir}/{extension}"
-    
+
     def generate_file_path(self, base_dir: str, extension: str) -> str:
         filename = f"{uuid4().hex}{extension}"
         return os.path.join(base_dir, filename)
+
 
 class ContractService(BasicCrud, ContractBase):
     CONTRACT_CONFIG = {
@@ -45,35 +46,50 @@ class ContractService(BasicCrud, ContractBase):
             "is_three": True,
         }
     }
-    
+
     def __init__(self, db: AsyncSession):
         super().__init__(db=db)
         self.qr_code_dir_path = self.path_builder("qr_codes", ".png")
-        
-        
+
     async def generate_contracts(self, user_id: int, edu_course_level: int):
         for contract_type in self.CONTRACT_CONFIG:
             await self.contract_download_pdf(user_id=user_id, edu_course_level=edu_course_level, contract_type=contract_type)
+            print('Contract Downloded', contract_type)
 
-        
     async def contract_download_pdf(self, user_id: int, edu_course_level: int, contract_type: str = "two_side") -> str:
-        contract = await self._get_contract(user_id)
+        contract = await self._create_contract(self.CONTRACT_CONFIG[contract_type]["directory"], ".pdf", user_id)
         
         if contract and contract.file_path and contract_type in contract.file_path:
             return urlparse(contract.file_path).path.lstrip("/")
         
-        contract = await self._create_contract(self.CONTRACT_CONFIG[contract_type]["directory"], ".pdf", user_id)
         html_content = await self._add_qr_code_and_generate_html(user_id, edu_course_level, contract_type)
         file_path = urlparse(contract.file_path).path.lstrip("/")
-        
+
         self._save_contract_pdf(html_content, file_path)
         return file_path
 
-
     async def _create_contract(self, base_dir: str, extension: str, user_id: int) -> Contract:
-        file_path = self.generate_file_path(base_dir, extension)
-        contract_data = ContractCreate(user_id=user_id, file_path=file_path, status=True)
-        return await super().create(model=Contract, obj_items=contract_data)
+        existing_contract = await self._get_contract(user_id)
+        
+        if not existing_contract:
+            file_path = self.generate_file_path(base_dir, extension)
+            contract_data = ContractCreate(user_id=user_id, file_path=file_path, status=True)
+            contract =  await super().create(model=Contract, obj_items=contract_data)
+            self._validate_contract(contract)
+        else:
+            return existing_contract
+    
+    def _validate_contract(self, contract):
+        if not contract:
+            raise HTTPException(status_code=404, detail="Contract not found for this user")
+
+        if not contract.user:
+            raise HTTPException(status_code=404, detail="User not found for contract")
+
+        if not contract.user.study_info:
+            raise HTTPException(status_code=404, detail="Study info not found for this user")
+
+        
 
     async def _get_contract(self, user_id: int) -> Contract:
         stmt = (
@@ -88,11 +104,9 @@ class ContractService(BasicCrud, ContractBase):
         )
         result = await self.db.execute(stmt)
         contract = result.scalars().first()
-        if not contract:
-            raise HTTPException(status_code=404, detail="Contract not found")
-        if not contract.user.study_info:
-            raise HTTPException(status_code=404, detail="Study info not found for this user")
         return contract
+
+
        
 
     def _generate_qr_code(self, data: str, save_path: str) -> None:
@@ -115,13 +129,15 @@ class ContractService(BasicCrud, ContractBase):
         return str(random.randint(0, 999999)).zfill(6)
 
     async def _generate_contract_html(self, user_id: int, template_name: str, edu_course_level: int, qr_code_path: str = None) -> str:
-        contract = await self.get_contract(user_id, load_related=True)
+        contract = await self._get_contract(user_id)
         user = contract.user
         passport = user.passport_data
         study_info = user.study_info
         direction = study_info.study_direction if study_info else None
+
         if not (passport and study_info and direction):
             raise HTTPException(status_code=400, detail="Required user info is missing")
+
         context = {
             "contract_id": self._generate_contract_id(),
             "fio": self._get_full_name(passport),
@@ -140,7 +156,7 @@ class ContractService(BasicCrud, ContractBase):
         return templates.get_template(template_name).render(context)
 
     async def _add_qr_code_and_generate_html(self, user_id: int, edu_course_level: int, contract_type: str) -> str:
-        contract = await self.get_contract(user_id)
+        contract = await self._get_contract(user_id)
         qr_path = self.generate_file_path(self.qr_code_dir_path, ".png")
         self._generate_qr_code(data=contract.file_path, save_path=qr_path)
         template_name = self.CONTRACT_CONFIG[contract_type]["template"]
@@ -151,7 +167,4 @@ class ContractService(BasicCrud, ContractBase):
         with open(file_path, "wb") as f:
             HTML(string=html_content, base_url=".").write_pdf(f)
 
-
-        
-        
         
