@@ -226,3 +226,11 @@ class ReportService(BasicCrud):
                 parsed_url = urlparse(contract.file_path)
                 return parsed_url.path.lstrip("/")
         return None
+    
+    async def get_all_reposrts(
+        self,
+        limit: int,
+        offset: int
+        ):
+        return await self.get_all(model=Contract , limit=limit , offset=offset)
+        
