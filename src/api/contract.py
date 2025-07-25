@@ -6,38 +6,38 @@ from typing import Annotated
 import os
 
 from src.core.db import get_db
-from src.service.report import ReportService
+from src.service.contract import ContractService
 from sharq_models.models import User  # type: ignore
 from src.utils.auth import require_roles
 
-report_router = APIRouter(prefix="/contract", tags=["Contract Reports"])
+contract_router = APIRouter(prefix="/contract", tags=["Contracts"])
 
 
-def get_report_service(db: AsyncSession = Depends(get_db)):
-    return ReportService(db)
+def get_contract_service(db: AsyncSession = Depends(get_db)):
+    return ContractService(db)
 
-class GenerateReportRequest(BaseModel):
+class GenerateContractsRequest(BaseModel):
     user_id: int
     edu_course_level: int
 
 
-@report_router.post("")
-async def generate_both_report(
-    request: GenerateReportRequest,
-    service: Annotated[ReportService, Depends(get_report_service)],
+@contract_router.post("")
+async def generate_contracts(
+    request: GenerateContractsRequest,
+    service: Annotated[ContractService, Depends(get_contract_service)],
     _: Annotated[User, Depends(require_roles(["admin"]))],
 ):
-    await service.generate_both_report(user_id=request.user_id, edu_course_level=request.edu_course_level)
+    await service.generate_contracts(user_id=request.user_id, edu_course_level=request.edu_course_level)
     return {"message": "Generated successfully"}
 
 
-@report_router.get("/download/ikki/{user_id}")
+@contract_router.get("/download/ikki/{user_id}")
 async def download_ikki_pdf(
     user_id: int,
-    service: Annotated[ReportService, Depends(get_report_service)],
+    service: Annotated[ContractService, Depends(get_contract_service)],
     _: Annotated[User, Depends(require_roles(["admin"]))],
 ):
-    file_path = await service.get_two_side_report(user_id=user_id)
+    file_path = await service.contract_download_pdf(user_id=user_id, contract_type="two_side")
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
@@ -49,13 +49,13 @@ async def download_ikki_pdf(
     )
 
 
-@report_router.get("/download/uch/{user_id}")  
+@contract_router.get("/download/uch/{user_id}")  
 async def download_uch_pdf(
     user_id: int,
-    service: Annotated[ReportService, Depends(get_report_service)],
+    service: Annotated[ContractService, Depends(get_contract_service)],
     _: Annotated[User, Depends(require_roles(["admin"]))],
 ):
-    file_path = await service.get_three_side_report(user_id=user_id)
+    file_path = await service.contract_download_pdf(user_id=user_id, contract_type="three_side")
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
@@ -67,12 +67,12 @@ async def download_uch_pdf(
     )
 
 
-@report_router.get("/get_all")
+@contract_router.get("/get_all")
 async def get_all_contract_data(
-    service: Annotated[ReportService, Depends(get_report_service)],
+    service: Annotated[ContractService, Depends(get_contract_service)],
     _: Annotated[User, Depends(require_roles(["admin"]))],
 ):
-    return await service.get_all_reposrts()
+    return await service.get_all_contracts()
 
 
 
