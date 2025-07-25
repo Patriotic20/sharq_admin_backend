@@ -81,6 +81,10 @@ class ReportService(BasicCrud):
 
         if not contract:
             raise HTTPException(status_code=404, detail="Contract not found")
+        
+        if not contract.user.study_info:
+            raise HTTPException(status_code=404, detail="Study info not found for this user")
+        
         return contract
 
     def _get_full_name(self, passport) -> str:

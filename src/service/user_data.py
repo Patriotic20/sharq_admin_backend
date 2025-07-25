@@ -1,22 +1,25 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sharq_models.models import ( # type: ignore
-    User, 
-    StudyInfo, 
+from sharq_models.models import (  # type: ignore
+    User,
+    StudyInfo,
     PassportData,
     StudyLanguage,
     StudyForm,
     StudyDirection,
     StudyType,
     EducationType,
-    
 )
 from src.service.study_info import StudyInfoCrud
 from src.schemas.passport_data import PassportDataResponse
-from src.schemas.study_info import StudyInfoResponse 
-from src.schemas.user_data import UserDataResponse , UserDataFilterByPassportData , UserDataFilterByStudyInfo
+from src.schemas.study_info import StudyInfoResponse
+from src.schemas.user_data import (
+    UserDataResponse,
+    UserDataFilterByPassportData,
+    UserDataFilterByStudyInfo,
+)
 from src.service import BasicCrud
 from fastapi import HTTPException
-from sqlalchemy import select , and_
+from sqlalchemy import select, and_
 from sqlalchemy.orm import joinedload
 
 
@@ -45,7 +48,6 @@ class UserData(BasicCrud):
             if study_info else None
         )
 
-        # serialize both fields to Pydantic response models
         passport_data_response = PassportDataResponse.model_validate(user.passport_data)
         study_info_response = (
             StudyInfoResponse.model_validate(study_info) if study_info else None
@@ -55,12 +57,14 @@ class UserData(BasicCrud):
             passport_data=passport_data_response,
             study_info_data=study_info_response
         )
-        
+
     async def get_all_user_data_by_passport_data(
         self,
-        filter_filed: UserDataFilterByPassportData
+        filter_filed: UserDataFilterByPassportData,
+        limit: int = 10,
+        offset: int = 0
     ) -> list[PassportData]:
-        stmt = select(PassportData).options(
+        stmt = select(PassportData).join(PassportData.user).options(
             joinedload(PassportData.user)
             .joinedload(User.study_info)
             .joinedload(StudyInfo.study_language),
@@ -78,7 +82,7 @@ class UserData(BasicCrud):
             .joinedload(StudyInfo.education_type)
         )
 
-        filters = []
+        filters = [User.study_info != None]  
 
         if filter_filed.passport_series_number:
             filters.append(PassportData.passport_series_number == filter_filed.passport_series_number)
@@ -95,37 +99,32 @@ class UserData(BasicCrud):
         if filter_filed.gender:
             filters.append(PassportData.gender == filter_filed.gender)
 
-        if filters:
-            stmt = stmt.where(and_(*filters))
+        stmt = stmt.where(and_(*filters)).limit(limit).offset(offset)
 
         result = await self.db.execute(stmt)
         return result.scalars().all()
 
-            
     async def get_all_user_data_by_study_info(
         self,
-        filter_field: UserDataFilterByStudyInfo
+        filter_field: UserDataFilterByStudyInfo,
+        limit: int = 10,
+        offset: int = 0
     ) -> list[User]:
         stmt = (
             select(User)
-            .join(User.study_info)
+            .join(User.study_info)  
             .join(StudyInfo.study_language)
             .join(StudyInfo.study_form)
             .join(StudyInfo.study_direction)
             .join(StudyInfo.study_type)
             .join(StudyInfo.education_type)
             .options(
-                joinedload(User.passport_data),  
-                joinedload(User.study_info)
-                    .joinedload(StudyInfo.study_language),
-                joinedload(User.study_info)
-                    .joinedload(StudyInfo.study_form),
-                joinedload(User.study_info)
-                    .joinedload(StudyInfo.study_direction),
-                joinedload(User.study_info)
-                    .joinedload(StudyInfo.study_type),
-                joinedload(User.study_info)
-                    .joinedload(StudyInfo.education_type)
+                joinedload(User.passport_data),
+                joinedload(User.study_info).joinedload(StudyInfo.study_language),
+                joinedload(User.study_info).joinedload(StudyInfo.study_form),
+                joinedload(User.study_info).joinedload(StudyInfo.study_direction),
+                joinedload(User.study_info).joinedload(StudyInfo.study_type),
+                joinedload(User.study_info).joinedload(StudyInfo.education_type)
             )
         )
 
@@ -142,10 +141,7 @@ class UserData(BasicCrud):
         if filter_field.education_type:
             filters.append(EducationType.name == filter_field.education_type)
 
-        if filters:
-            stmt = stmt.where(and_(*filters))
+        stmt = stmt.where(and_(*filters)).limit(limit).offset(offset)
 
         result = await self.db.execute(stmt)
         return result.scalars().all()
-
-
