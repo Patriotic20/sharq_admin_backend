@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException , Query
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
@@ -63,6 +63,14 @@ async def download_uch_pdf(
     )
 
 
+@report_router.get("/get_all")
+async def get_all_contract_data(
+    service: Annotated[ReportService, Depends(get_report_service)],
+    _: Annotated[User, Depends(require_roles(["admin"]))],
+    limit: int = Query(20, ge=1),  
+    offset: int = Query(0, ge=0),  
+):
+    return await service.get_all_reposrts(limit=limit, offset=offset)
 
 
 
