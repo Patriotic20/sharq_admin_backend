@@ -102,6 +102,7 @@ class ReportService(BasicCrud):
 
         if not (passport and study_info and direction):
             raise HTTPException(status_code=400, detail="Required user info is missing")
+        print(f"<<<<<<<<<<<<<<<<<<unitl context edu_course_level {edu_course_level}")
 
         context = {
             "contract_id": self._generate_contract_id(),
@@ -118,6 +119,8 @@ class ReportService(BasicCrud):
             "phone_number": user.phone_number or "",
             "qr_code_path": qr_code_path,
         }
+        
+        print(f"<<<<<<<<<<<<<<<<<<after context edu_course_level {context.get(edu_course_level)}")
         return templates.get_template(template_name).render(context)
 
     async def add_qr_code_in_report(self, user_id: int,  edu_course_level: int ,is_three: bool = False) -> str:
@@ -131,11 +134,12 @@ class ReportService(BasicCrud):
         template_name = "uchtomon.html" if is_three else "ikki.html"
         return await self.generate_report(user_id=user_id, template_name=template_name, qr_code_path=qr_path , edu_course_level=edu_course_level)
 
-    async def report_2_download_pdf(self, user_id: int, edu_course_level: int ,is_three: bool = False ) -> str:
+    async def report_2_download_pdf(self, user_id: int, edu_course_level: int ,is_three: bool = False) -> str:
         contract = await self.get_contract_by_user_id(user_id=user_id)
-        # print("<<<<<<<<<<<<<<<<<<<<<Get contract by user id>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-        if contract and contract.file_path:
+        print("<<<<<<<<<<<<<<<<<<<<<Get contract by user id>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+        if contract and contract.file_path and "two_side" in contract.file_path:
             file_url = contract.file_path
+            print(f"<<<<<<<<<<<<<<<<<<<<<Get contract by user id {file_url}>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
             parsed_url = urlparse(file_url)
             print(f"<<<<<<<<<<<<<<<Parse url : {parsed_url}")
             return parsed_url.path.lstrip("/")
@@ -146,58 +150,59 @@ class ReportService(BasicCrud):
                 user_id=user_id,
             )
             file_url = contract.file_path
-            # print(f"<<<<<<<<<<<<<<<create_and_add_file_path url : {file_url}")
+            print(f"<<<<<<<<<<<<<<<create_and_add_file_path url : {file_url}")
             html_content = await self.add_qr_code_in_report(user_id=user_id, is_three=is_three , edu_course_level=edu_course_level)
-            # print("<<<<<<<<<<<<<<<add_qr_code_in_report>>>>>>>>>>>>>>>>>>>>>>>")
+            print(f"<<<<<<<<<<<<<<<<<<edu_course_level {edu_course_level}")
+            print("<<<<<<<<<<<<<<<add_qr_code_in_report>>>>>>>>>>>>>>>>>>>>>>>")
             
             pdf = BytesIO()
             HTML(string=html_content, base_url=".").write_pdf(pdf)
             pdf.seek(0)
             parsed_url = urlparse(file_url)
             file_path = parsed_url.path.lstrip("/")
-            # print(f"<<<<<<<<<<<<<<<<<<< file path: {file_path}")
+            print(f"<<<<<<<<<<<<<<<<<<< file path: {file_path}")
 
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             with open(file_path, "wb") as f:
                 f.write(pdf.read())
             pdf.seek(0)
-            # print("<<<<<<<<<<<<<<<<<<<<<<<Saved in uploads contract two side folder>>>>>>>>>>>>>>>>>>>>>>>")
+            print("<<<<<<<<<<<<<<<<<<<<<<<Saved in uploads contract two side folder>>>>>>>>>>>>>>>>>>>>>>>")
             
             parsed_url = urlparse(file_url)
             return parsed_url.path.lstrip("/")
         
     async def report_3_download_pdf(self, user_id: int, edu_course_level: int ,is_three: bool = True ) -> str:
         contract = await self.get_contract_by_user_id(user_id=user_id)
-        # print("<<<<<<<<<<<<<<<<<<<<<Get contract by user id>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+        print("<<<<<<<<<<<<<<<<<<<<<Get contract by user id>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
         if contract and contract.file_path and "three_side" in contract.file_path:
             file_url = contract.file_path
             parsed_url = urlparse(file_url)
-            # print(f"<<<<<<<<<<<<<<<Parse url : {parsed_url}")
+            print(f"<<<<<<<<<<<<<<<Parse url : {parsed_url}")
             return parsed_url.path.lstrip("/")
-        if "two_side" in contract.file_path:
+        else:
             contract = await self.create_and_add_file_path(
                 base_dir=self.contract_three_side,
                 extension=".pdf",
                 user_id=user_id,
             )
             file_url = contract.file_path
-            # print(f"<<<<<<<<<<<<<<<create_and_add_file_path url : {file_url}")
+            print(f"<<<<<<<<<<<<<<<create_and_add_file_path url : {file_url}")
 
             html_content = await self.add_qr_code_in_report(user_id=user_id, is_three=is_three , edu_course_level=edu_course_level)
-            # print("<<<<<<<<<<<<<<<add_qr_code_in_report>>>>>>>>>>>>>>>>>>>>>>>")
+            print("<<<<<<<<<<<<<<<add_qr_code_in_report>>>>>>>>>>>>>>>>>>>>>>>")
             
             pdf = BytesIO()
             HTML(string=html_content, base_url=".").write_pdf(pdf)
             pdf.seek(0)
             parsed_url = urlparse(file_url)
             file_path = parsed_url.path.lstrip("/")
-            # print(f"<<<<<<<<<<<<<<<<<<< file path: {file_path}")
+            print(f"<<<<<<<<<<<<<<<<<<< file path: {file_path}")
 
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             with open(file_path, "wb") as f:
                 f.write(pdf.read())
             pdf.seek(0)
-            # print("<<<<<<<<<<<<<<<<<<<<<<<Saved in uploads contract three side folder>>>>>>>>>>>>>>>>>>>>>>>")
+            print("<<<<<<<<<<<<<<<<<<<<<<<Saved in uploads contract three side folder>>>>>>>>>>>>>>>>>>>>>>>")
             parsed_url = urlparse(file_url)
             return parsed_url.path.lstrip("/")
         
@@ -205,9 +210,9 @@ class ReportService(BasicCrud):
         
     async def generate_both_report(self, user_id: int, edu_course_level: int):
         await self.report_2_download_pdf(user_id=user_id , edu_course_level=edu_course_level, is_three=False)
-        # print(f"<<<<<<<<<<<<<<<<<<<<<Report 2 download pdf {report_2_download_path}>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+        print("<<<<<<<<<<<<<<<<<<<<<Report 2 download pdf >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
         await self.report_3_download_pdf(user_id=user_id , edu_course_level=edu_course_level, is_three=True)
-        # print(f"<<<<<<<<<<<<<<<<<<<<<Report 3 download pdf {report_3_download_path}>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+        print("<<<<<<<<<<<<<<<<<<<<<Report 3 download pdf >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
         
         
     async def get_all_reports_by_id(self, user_id: int):
