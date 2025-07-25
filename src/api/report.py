@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
 import os
@@ -15,15 +16,18 @@ report_router = APIRouter(prefix="/contract", tags=["Contract Reports"])
 def get_report_service(db: AsyncSession = Depends(get_db)):
     return ReportService(db)
 
+class GenerateReportRequest(BaseModel):
+    user_id: int
+    edu_course_level: int
+
 
 @report_router.post("")
 async def generate_both_report(
-    user_id: int,
-    edu_course_level: int,
+    request: GenerateReportRequest,
     service: Annotated[ReportService, Depends(get_report_service)],
     _: Annotated[User, Depends(require_roles(["admin"]))],
 ):
-    await service.generate_both_report(user_id=user_id, edu_course_level=edu_course_level)
+    await service.generate_both_report(user_id=request.user_id, edu_course_level=request.edu_course_level)
     return {"message": "Generated successfully"}
 
 
