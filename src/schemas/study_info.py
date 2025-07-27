@@ -15,15 +15,14 @@ class StudyInfoBase(BaseModel):
     graduate_year: str
     certificate_path: str | None = None
     dtm_sheet: str | None = None
+    
+class StudyInfoCreate(StudyInfoBase):
+    user_id: int
+    promo_code: str | None = None
 
 
 class StudyInfoCreateRequest(StudyInfoBase):
     pass
-
-
-class StudyInfoCreate(StudyInfoBase):
-    user_id: int
-
 
 
 class StudyInfoResponse(BaseModel):

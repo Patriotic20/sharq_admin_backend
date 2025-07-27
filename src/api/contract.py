@@ -27,8 +27,8 @@ async def generate_contracts(
     service: Annotated[ContractService, Depends(get_contract_service)],
     _: Annotated[User, Depends(require_roles(["admin"]))],
 ):
-    await service.generate_contracts(user_id=request.user_id, edu_course_level=request.edu_course_level)
-    return {"message": "Generated successfully"}
+    urls = await service.generate_contracts(user_id=request.user_id, edu_course_level=request.edu_course_level)
+    return {"message": "Generated successfully", "urls": urls}
 
 
 @contract_router.get("/download/ikki/{user_id}")
@@ -37,7 +37,7 @@ async def download_ikki_pdf(
     service: Annotated[ContractService, Depends(get_contract_service)],
     _: Annotated[User, Depends(require_roles(["admin"]))],
 ):
-    file_path = await service.contract_download_pdf(user_id=user_id, contract_type="two_side")
+    file_path = await service.get_or_create_contract(user_id=user_id, contract_type="two_side")
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
@@ -55,7 +55,7 @@ async def download_uch_pdf(
     service: Annotated[ContractService, Depends(get_contract_service)],
     _: Annotated[User, Depends(require_roles(["admin"]))],
 ):
-    file_path = await service.contract_download_pdf(user_id=user_id, contract_type="three_side")
+    file_path = await service.get_or_create_contract(user_id=user_id, contract_type="three_side")
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
@@ -72,7 +72,7 @@ async def get_all_contract_data(
     service: Annotated[ContractService, Depends(get_contract_service)],
     _: Annotated[User, Depends(require_roles(["admin"]))],
 ):
-    return await service.get_all_contracts()
+    return await service.get_contracts()
 
 
 

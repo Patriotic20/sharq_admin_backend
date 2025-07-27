@@ -27,3 +27,58 @@ def generate_qr_code(data: str, save_path: str) -> None:
 
 def generate_contract_id(length: int = 6) -> str:
     return ''.join(random.choices('0123456789', k=length))
+
+
+def number_to_uzbek(n):
+    ones = ["", "bir", "ikki", "uch", "to'rt", "besh", "olti", "yetti", "sakkiz", "to'qqiz"]
+    tens = ["", "o'n", "yigirma", "o'ttiz", "qirq", "ellik", "oltmish", "yetmish", "sakson", "to'qson"]
+    hundreds = ["", "bir yuz", "ikki yuz", "uch yuz", "to'rt yuz", "besh yuz", "olti yuz", "yetti yuz", "sakkiz yuz", "to'qqiz yuz"]
+    
+
+    if n == 0:
+        return "nol"
+    
+    result = []
+
+    # Handle billions
+    if n >= 1000000000:
+        billions = n // 1000000000
+        if billions == 1:
+            result.append("bir milliard")
+        else:
+            result.append(number_to_uzbek(billions) + " milliard")
+        n %= 1000000000
+
+    # Handle millions
+    if n >= 1000000:
+        millions = n // 1000000
+        if millions == 1:
+            result.append("bir million")
+        else:
+            result.append(number_to_uzbek(millions) + " million")
+        n %= 1000000
+
+    # Handle thousands
+    if n >= 1000:
+        thousands = n // 1000
+        if thousands == 1:
+            result.append("bir ming")
+        else:
+            result.append(number_to_uzbek(thousands) + " ming")
+        n %= 1000
+
+    # Handle hundreds
+    if n >= 100:
+        result.append(hundreds[n // 100])
+        n %= 100
+
+    # Handle tens
+    if n >= 10:
+        result.append(tens[n // 10])
+        n %= 10
+
+    # Handle ones
+    if n > 0:
+        result.append(ones[n])
+    
+    return " ".join([word for word in result if word]).strip()

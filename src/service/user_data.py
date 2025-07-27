@@ -48,10 +48,9 @@ class UserData(BasicCrud):
             if study_info else None
         )
 
-        passport_data_response = PassportDataResponse.model_validate(user.passport_data)
-        study_info_response = (
-            StudyInfoResponse.model_validate(study_info) if study_info else None
-        )
+        # Ensure passport_data is loaded before validation
+        passport_data = user.passport_data
+        passport_data_response = PassportDataResponse.model_validate(passport_data)
 
         return UserDataResponse(
             passport_data=passport_data_response,

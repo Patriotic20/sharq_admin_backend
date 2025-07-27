@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload 
 
 from sharq_models.models import StudyInfo  # type: ignore
-from src.schemas.study_info import StudyInfoBase, StudyInfoResponse
+from src.schemas.study_info import StudyInfoBase, StudyInfoResponse, StudyInfoCreate
 from src.schemas.study_language import StudyLanguageResponse
 from src.schemas.study_type import StudyTypeResponse
 from src.schemas.education_type import EducationTypeResponse
@@ -89,5 +89,11 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
         study_infos = result.scalars().all()
 
         return [self._to_response_with_names(info) for info in study_infos]
+    
+    async def create_study_info(self, study_info_data: StudyInfoCreate) -> StudyInfoResponse:
+        existing_study_info = await self.get_by_field(model=StudyInfo, field_name="user_id", field_value=study_info_data.user_id)
+        if existing_study_info:
+            raise HTTPException(status_code=400, detail="Study info already exists")
+        return await super().create(model=StudyInfo, obj_items=study_info_data)
     
 

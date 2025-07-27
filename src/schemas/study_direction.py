@@ -3,6 +3,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class StudyDirectionBase(BaseModel):
+    study_form_id: int | None = None
     name: str 
     exam_title: str 
     

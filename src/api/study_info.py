@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from src.service.study_info import StudyInfoCrud
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.schemas.study_info import StudyInfoResponse
+from src.schemas.study_info import StudyInfoResponse, StudyInfoCreate
 from src.core.db import get_db
 from sharq_models import User #type: ignore
 from src.utils.auth import require_roles
@@ -33,5 +33,13 @@ async def get_all_study_info(
     return await service.get_all_study_info(
         limit=limit, offset=offset
     )
+    
+@study_info_router.post("/create")
+async def create_study_info(
+    study_info: StudyInfoCreate,
+    service: Annotated[StudyInfoCrud, Depends(get_service_crud)],
+    _: Annotated[User, Depends(require_roles(["admin"]))],
+):
+    return await service.create_study_info(study_info_data=study_info)
 
 
