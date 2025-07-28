@@ -8,6 +8,7 @@ from src.schemas.study_direction import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
+from sqlalchemy import select
 
 
 class StudyDirectionCrud(BasicCrud[StudyDirection, StudyDirectionBase]):
@@ -17,11 +18,13 @@ class StudyDirectionCrud(BasicCrud[StudyDirection, StudyDirectionBase]):
     async def create_study_direction(
         self, obj: StudyDirectionBase
     ) -> StudyDirectionResponse:
-        existing = await super().get_by_field(
-            model=StudyDirection,
-            field_name="study_code",
-            field_value=obj.study_code,
-        )
+        stmt = select(StudyDirection).where(
+            StudyDirection.name == obj.name, 
+            StudyDirection.study_form_id == obj.study_form_id
+            )
+        result = await self.db.execute(stmt)
+        existing = result.scalars().first()
+        
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,

@@ -81,3 +81,12 @@ async def get_user_data_by_study_info_filter(
         limit=limit,
         offset=offset
     )
+
+
+@user_data_router.get("/users_with_study_info")
+async def count_users_with_study_info(
+    _: Annotated[User, Depends(require_roles(["admin"]))],
+    service: Annotated[UserData, Depends(get_user_data_service)],
+):
+    return await service.count_all_user_with_study_info()
+

@@ -21,6 +21,7 @@ class StudyFormCrud(BasicCrud[StudyForm, StudyFormBase]):
             field_name="name",
             field_value=obj.name,
         )
+
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,

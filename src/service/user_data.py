@@ -11,7 +11,7 @@ from sharq_models.models import (  # type: ignore
 )
 from src.service.study_info import StudyInfoCrud
 from src.schemas.passport_data import PassportDataResponse
-from src.schemas.study_info import StudyInfoResponse
+# from src.schemas.study_info import StudyInfoResponse
 from src.schemas.user_data import (
     UserDataResponse,
     UserDataFilterByPassportData,
@@ -19,7 +19,7 @@ from src.schemas.user_data import (
 )
 from src.service import BasicCrud
 from fastapi import HTTPException
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_ , func
 from sqlalchemy.orm import joinedload
 
 
@@ -144,3 +144,10 @@ class UserData(BasicCrud):
 
         result = await self.db.execute(stmt)
         return result.scalars().all()
+
+
+    async def count_all_user_with_study_info(self) -> dict:
+        stmt = select(func.count(StudyInfo.id)) 
+        result = await self.db.execute(stmt)
+        count = result.scalar_one()
+        return {"count": count}
