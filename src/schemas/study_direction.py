@@ -22,6 +22,7 @@ class StudyDirectionResponse(StudyDirectionBase):
 
 
 class StudyDirectionUpdate(BaseModel):
+    study_form_id: int | None = None
     name: str  | None = None
     exam_title: str  | None = None
     
