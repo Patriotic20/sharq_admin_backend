@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 from urllib.parse import urlparse
 from typing import Optional
 
@@ -8,17 +9,25 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.schemas.contract import ContractCreate
-from sharq_models.models import Contract, User, StudyInfo  # type: ignore
+from sharq_models.models import Contract, User, StudyInfo, AMOCrmLead  # type: ignore
 from src.service.contract.base import ContractBase
 from src.utils.utils import number_to_uzbek
-
+from src.service.contract.amo import move_lead_to_get_contract_pipeline
+from src.core.config import settings
 
 class ContractService(ContractBase):
     def __init__(self, db: AsyncSession):
         super().__init__(db=db)
-
+        self.logger = logging.getLogger(__name__)
+        
     async def generate_contracts(self, user_id: int, edu_course_level: int):
         urls = []
+        lead = await self._get_lead(user_id)
+        if lead:
+            move_lead_to_get_contract_pipeline(lead.lead_id, settings.amo_crm_config)
+        else:
+            self.logger.error(f"Lead not found for user {user_id}")
+        
         for contract_type in self.CONTRACT_CONFIG:
             url = await self.get_or_create_contract(user_id=user_id, edu_course_level=edu_course_level, contract_type=contract_type)
             urls.append(url)
@@ -40,6 +49,15 @@ class ContractService(ContractBase):
         result = await self.db.execute(stmt)
         contracts = result.scalars().all()
         return contracts
+    
+    async def _get_lead(self, user_id: int) -> AMOCrmLead:
+        stmt = (
+            select(AMOCrmLead)
+            .where(AMOCrmLead.user_id == user_id)
+        )
+        result = await self.db.execute(stmt)
+        lead = result.scalars().first()
+        return lead
 
     async def get_or_create_contract(self, user_id: int, contract_type: str = "two_side", edu_course_level: Optional[int] = None) -> str:
         contract, is_created = await self._create_contract_or_get_existing(user_id, contract_type)
