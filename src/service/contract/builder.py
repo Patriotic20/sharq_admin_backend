@@ -33,7 +33,12 @@ class ContractService(ContractBase):
             urls.append(url)
         return urls
     
-    async def get_contracts(self, limit: int = 10, offset: int = 0) -> list[Contract]:
+    async def get_contracts(
+        self, 
+        # limit: int = 10, 
+        # offset: int = 0
+        ) -> list[Contract]:
+
         stmt = (
             select(Contract)
             .options(
@@ -43,8 +48,8 @@ class ContractService(ContractBase):
                 joinedload(Contract.user).joinedload(User.study_info).joinedload(StudyInfo.study_direction),
             )
             .order_by(Contract.created_at.desc())
-            .limit(limit)
-            .offset(offset)
+            # .limit(limit)
+            # .offset(offset)
         )
         result = await self.db.execute(stmt)
         contracts = result.scalars().all()
