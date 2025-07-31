@@ -4,11 +4,11 @@ import os
 import random
 from uuid import uuid4
 import qrcode
-from sqlalchemy import select
+from sqlalchemy import select  , update
 from sqlalchemy.ext.asyncio import AsyncSession
 from weasyprint import HTML
 from src.service import BasicCrud
-from sharq_models.models.contract import Contract
+from sharq_models.models import Contract , StudyInfo #type:ignore
 from src.core.config import settings
 from fastapi.templating import Jinja2Templates
 import jinja2
@@ -78,3 +78,14 @@ class ContractBase(BasicCrud):
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, "wb") as f:
             HTML(string=html_content, base_url=".").write_pdf(f)    
+            
+    async def _update_in_study_info(self, user_id: int):
+        stmt = (
+            update(StudyInfo)
+            .where(StudyInfo.user_id == user_id)
+            .values(is_approved=True)
+            .execution_options(synchronize_session="fetch")
+        )
+        await self.db.execute(stmt)
+        await self.db.commit()
+        

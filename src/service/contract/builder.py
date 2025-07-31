@@ -100,6 +100,8 @@ class ContractService(ContractBase):
             if not contract:
                 raise HTTPException(status_code=404, detail="Contract not found for this user")
             
+            await self._update_in_study_info(user_id=user_id)
+            
             full_contract = await self._get_contract(user_id, contract_type)            
             return full_contract, True
         else:
