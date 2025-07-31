@@ -84,6 +84,7 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
             )
             .limit(limit)
             .offset(offset)
+            .order_by(StudyInfo.id.desc())
         )
         result = await self.db.execute(stmt)
         study_infos = result.scalars().all()
