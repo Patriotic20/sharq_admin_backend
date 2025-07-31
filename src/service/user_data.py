@@ -8,6 +8,7 @@ from sharq_models.models import (  # type: ignore
     StudyDirection,
     StudyType,
     EducationType,
+    Contract,
 )
 from src.service.study_info import StudyInfoCrud
 from src.schemas.passport_data import PassportDataResponse
@@ -146,21 +147,21 @@ class UserData(BasicCrud):
         return result.scalars().all()
 
 
-    async def count_all_user_with_study_info(self) -> dict:
-        stmt = select(User).options(
-            joinedload(User.passport_data),
-            joinedload(User.study_info),
-            joinedload(User.contracts)
-        )
-        result = await self.db.execute(stmt)
-        users = result.scalars().all()
+    async def count_all_users_with_related_data(self) -> dict:
+        stmt_study_info = select(StudyInfo)
+        result_study_info = await self.db.execute(stmt_study_info)
+        users_with_study_info = result_study_info.scalars()
 
-        count_passport = sum(1 for user in users if user.passport_data)
-        count_study_info = sum(1 for user in users if user.study_info)
-        count_contract = sum(1 for user in users if user.contracts)
+        stmt_passport = select(PassportData)
+        result_passport = await self.db.execute(stmt_passport)
+        users_with_passport_data = result_passport.scalars()
+
+        stmt_contract = select(Contract)
+        result_contract = await self.db.execute(stmt_contract)
+        users_with_contract = result_contract.scalars()
 
         return {
-            "users_with_passport_data": count_passport,
-            "users_with_study_info": count_study_info,
-            "users_with_contract": count_contract
+            "users_with_passport_data": users_with_passport_data,
+            "users_with_study_info": users_with_study_info,
+            "users_with_contract": users_with_contract
         }
