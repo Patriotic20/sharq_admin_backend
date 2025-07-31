@@ -20,7 +20,7 @@ from src.schemas.user_data import (
 )
 from src.service import BasicCrud
 from fastapi import HTTPException
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_ , func
 from sqlalchemy.orm import joinedload
 
 
@@ -148,17 +148,17 @@ class UserData(BasicCrud):
 
 
     async def count_all_users_with_related_data(self) -> dict:
-        stmt_study_info = select(StudyInfo)
+        stmt_study_info = select(func.count()).select_from(StudyInfo)
         result_study_info = await self.db.execute(stmt_study_info)
-        users_with_study_info = result_study_info.scalars()
+        users_with_study_info = result_study_info.scalar_one()
 
-        stmt_passport = select(PassportData)
+        stmt_passport = select(func.count()).select_from(PassportData)
         result_passport = await self.db.execute(stmt_passport)
-        users_with_passport_data = result_passport.scalars()
+        users_with_passport_data = result_passport.scalar_one()
 
-        stmt_contract = select(Contract)
+        stmt_contract = select(func.count()).select_from(Contract)
         result_contract = await self.db.execute(stmt_contract)
-        users_with_contract = result_contract.scalars()
+        users_with_contract = result_contract.scalar_one()
 
         return {
             "users_with_passport_data": users_with_passport_data,
