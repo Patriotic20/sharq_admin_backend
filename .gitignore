@@ -1,0 +1,40 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+*.env
+.env
+
+# Virtual environments
+.venv
+.env
+
+uploads/
+media/
+
+# IDE
+.vscode
+.idea
+
+# pycharm
+.idea
+
+# vscode
+.vscode
+
+# python 
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+*.pyzw
+*.pyzwz
+__pycache__/
+
+
