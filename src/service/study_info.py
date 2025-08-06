@@ -128,7 +128,7 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
         Get all StudyInfo entries with nested relations and optional filters.
         """
         stmt = (
-            select(StudyInfo)
+            select(StudyInfo).distinct()
             .join(StudyInfo.user)
             .join(User.passport_data)
             .join(StudyInfo.study_language)
@@ -223,28 +223,4 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
 
 
 
-    def _build_filters(
-        self,
-        study_language_id: int | None,
-        study_form_id: int | None,
-        education_type_id: int | None,
-        study_type_id: int | None,
-        study_direction_id: int | None,  
-    ) -> list:
-        """
-        Build filters on study-related fields.
-        """
-        filters = []
 
-        if study_language_id:
-            filters.append(StudyInfo.study_language_id == study_language_id)
-        if study_form_id:
-            filters.append(StudyInfo.study_form_id == study_form_id)
-        if education_type_id:
-            filters.append(StudyInfo.education_type_id == education_type_id)
-        if study_type_id:
-            filters.append(StudyInfo.study_type_id == study_type_id)
-        if study_direction_id:
-            filters.append(StudyInfo.study_direction_id == study_direction_id)  
-
-        return filters
