@@ -129,13 +129,13 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
         """
         stmt = (
             select(StudyInfo).distinct()
-            # .join(StudyInfo.user)
-            # .join(User.passport_data)
-            # .join(StudyInfo.study_language)
-            # .join(StudyInfo.study_form)
-            # .join(StudyInfo.study_direction)
-            # .join(StudyInfo.study_type)
-            # .join(StudyInfo.education_type)
+            .join(StudyInfo.user)
+            .join(User.passport_data)
+            .join(StudyInfo.study_language)
+            .join(StudyInfo.study_form)
+            .join(StudyInfo.study_direction)
+            .join(StudyInfo.study_type)
+            .join(StudyInfo.education_type)
             .options(
                 joinedload(StudyInfo.study_language),
                 joinedload(StudyInfo.study_form),
@@ -187,7 +187,7 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
 
         # Execute main query
         result = await self.db.execute(stmt)
-        study_infos = result.scalars().all()
+        study_infos = result.unique().scalars().all()
 
         # Get total count (filtered)
         count_stmt = select(func.count(StudyInfo.id))
