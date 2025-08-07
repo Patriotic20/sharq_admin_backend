@@ -123,28 +123,24 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
         study_info_filter: UserDataFilterByStudyInfo = None,
         limit: int = 100,
         offset: int = 0
-    ) ->  StudyInfoListResponse:
+    ) -> StudyInfoListResponse:
         """
         Get all StudyInfo entries with nested relations and optional filters.
         """
+
+        # Build base query
         stmt = (
-            select(StudyInfo).distinct()
-            .join(StudyInfo.user)
-            .join(User.passport_data)
-            .join(StudyInfo.study_language)
-            .join(StudyInfo.study_form)
-            .join(StudyInfo.study_direction)
-            .join(StudyInfo.study_type)
-            .join(StudyInfo.education_type)
+            select(User)
             .options(
-                selectinload(StudyInfo.study_language),
-                selectinload(StudyInfo.study_form),
-                selectinload(StudyInfo.study_direction),
-                selectinload(StudyInfo.education_type),
-                selectinload(StudyInfo.study_type),
-                selectinload(StudyInfo.user).selectinload(User.passport_data),
+                selectinload(User.contracts),
+                selectinload(User.study_info).selectinload(StudyInfo.study_language),
+                selectinload(User.study_info).selectinload(StudyInfo.study_form),
+                selectinload(User.study_info).selectinload(StudyInfo.study_direction),
+                selectinload(User.study_info).selectinload(StudyInfo.education_type),
+                selectinload(User.study_info).selectinload(StudyInfo.study_type),
+                selectinload(User.passport_data),
             )
-            .order_by(StudyInfo.id.desc())
+            .order_by(User.id.desc())
             .limit(limit)
             .offset(offset)
         )
@@ -181,27 +177,38 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
             if study_info_filter.education_type:
                 filters.append(EducationType.name == study_info_filter.education_type)
 
-        # Apply filters
+        # Apply joins + filters only if needed
         if filters:
+            stmt = stmt.join(User.passport_data)
+            stmt = stmt.join(User.study_info).join(StudyInfo.study_language).join(StudyInfo.study_form)
+            stmt = stmt.join(StudyInfo.study_direction).join(StudyInfo.study_type).join(StudyInfo.education_type)
             stmt = stmt.where(and_(*filters))
 
-        # Execute main query
+        # Execute query
         result = await self.db.execute(stmt)
-        study_infos = result.scalars().unique().all()
+        users: list[User] = result.scalars().unique().all()
 
-        # Get total count (filtered)
-        count_stmt = select(func.count(StudyInfo.id))
-        if filters:
-            count_stmt = count_stmt.join(StudyInfo.user).join(User.passport_data)
-            count_stmt = count_stmt.where(and_(*filters))
-        total_result = await self.db.execute(count_stmt)
-        total = total_result.scalar_one()
+        # Flatten StudyInfo from users
+        study_infos = []
+        for user in users:
+            # Safe extend to avoid NoneType error
+            study_infos.extend(user.study_info or [])
 
         # Build response objects
         responses = []
         for info in study_infos:
             response = await self._to_response_with_names(info)
             responses.append(response)
+
+        # Total count of filtered StudyInfo
+        count_stmt = select(func.count(StudyInfo.id))
+        if filters:
+            count_stmt = count_stmt.join(StudyInfo.user).join(User.passport_data)
+            count_stmt = count_stmt.join(StudyInfo.study_language).join(StudyInfo.study_form)
+            count_stmt = count_stmt.join(StudyInfo.study_direction).join(StudyInfo.study_type).join(StudyInfo.education_type)
+            count_stmt = count_stmt.where(and_(*filters))
+        total_result = await self.db.execute(count_stmt)
+        total = total_result.scalar_one()
 
         return {"data": responses, "total": total}
             
