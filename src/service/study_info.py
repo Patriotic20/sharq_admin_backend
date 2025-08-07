@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from sharq_models.models import User , PassportData , StudyLanguage , StudyForm , StudyDirection , StudyType , EducationType # type: ignore
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func , and_
-from sqlalchemy.orm import joinedload 
+from sqlalchemy.orm import joinedload  , selectinload
 
 
 
@@ -137,12 +137,12 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
             .join(StudyInfo.study_type)
             .join(StudyInfo.education_type)
             .options(
-                joinedload(StudyInfo.study_language),
-                joinedload(StudyInfo.study_form),
-                joinedload(StudyInfo.study_direction),
-                joinedload(StudyInfo.education_type),
-                joinedload(StudyInfo.study_type),
-                joinedload(StudyInfo.user).joinedload(User.passport_data),
+                selectinload(StudyInfo.study_language),
+                selectinload(StudyInfo.study_form),
+                selectinload(StudyInfo.study_direction),
+                selectinload(StudyInfo.education_type),
+                selectinload(StudyInfo.study_type),
+                selectinload(StudyInfo.user).selectinload(User.passport_data),
             )
             .order_by(StudyInfo.id.desc())
             .limit(limit)
@@ -187,7 +187,7 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
 
         # Execute main query
         result = await self.db.execute(stmt)
-        study_infos = result.unique().scalars().all()
+        study_infos = result.scalars().unique().all()
 
         # Get total count (filtered)
         count_stmt = select(func.count(StudyInfo.id))
