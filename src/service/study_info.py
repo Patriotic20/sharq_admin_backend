@@ -2,7 +2,7 @@ import asyncio
 from fastapi import HTTPException
 from sharq_models.models import User , PassportData , StudyLanguage , StudyForm , StudyDirection , StudyType , EducationType # type: ignore
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func , and_
+from sqlalchemy import select, func , and_ , or_
 from sqlalchemy.orm import joinedload  , selectinload
 
 
@@ -119,17 +119,14 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
         return await self._get_with_join(study_info_id=study_info_id)
 
     async def get_all_study_info(
-        self,
-        passport_filter: UserDataFilterByPassportData = None,
-        study_info_filter: UserDataFilterByStudyInfo = None,
-        limit: int = 100,
-        offset: int = 0
-    ) -> StudyInfoListResponse:
-        """
-        Get all StudyInfo entries with nested relations and optional filters.
-        """
+    self,
+    passport_filter: UserDataFilterByPassportData = None,
+    study_info_filter: UserDataFilterByStudyInfo = None,
+    search: str | None = None,  # <-- added search parameter
+    limit: int = 100,
+    offset: int = 0
+        ) -> StudyInfoListResponse:
 
-        # Build base query for StudyInfo
         stmt = (
             select(StudyInfo)
             .options(
@@ -176,35 +173,43 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
             if study_info_filter.education_type:
                 filters.append(EducationType.name == study_info_filter.education_type)
 
-        # Apply joins + filters only if needed
+        # Search filter
+        if search:
+            search_term = f"%{search}%"
+            filters.append(
+                or_(
+                    PassportData.first_name.ilike(search_term),
+                    PassportData.last_name.ilike(search_term),
+                    PassportData.third_name.ilike(search_term),
+                    PassportData.passport_series_number.ilike(search_term),
+                    PassportData.jshshir.ilike(search_term),
+                    StudyDirection.name.ilike(search_term),
+                    StudyLanguage.name.ilike(search_term),
+                )
+            )
+
+        # Apply joins only if there are filters
         if filters:
             stmt = stmt.join(StudyInfo.user).join(User.passport_data)
             stmt = stmt.join(StudyInfo.study_language).join(StudyInfo.study_form)
             stmt = stmt.join(StudyInfo.study_direction).join(StudyInfo.study_type).join(StudyInfo.education_type)
             stmt = stmt.where(and_(*filters))
 
-        # Apply limit and offset
         stmt = stmt.limit(limit).offset(offset)
 
-        # Execute query
         result = await self.db.execute(stmt)
-        study_infos: list[StudyInfo] = result.scalars().all()  # No .unique() needed
+        study_infos = result.scalars().all()
 
-        # Build response objects
-        responses = []
-        for info in study_infos:
-            response = await self._to_response_with_names(info)
-            responses.append(response)
+        responses = [await self._to_response_with_names(info) for info in study_infos]
 
-        # Total count of filtered StudyInfo
+        # Count
         count_stmt = select(func.count(StudyInfo.id))
         if filters:
             count_stmt = count_stmt.join(StudyInfo.user).join(User.passport_data)
             count_stmt = count_stmt.join(StudyInfo.study_language).join(StudyInfo.study_form)
             count_stmt = count_stmt.join(StudyInfo.study_direction).join(StudyInfo.study_type).join(StudyInfo.education_type)
             count_stmt = count_stmt.where(and_(*filters))
-        total_result = await self.db.execute(count_stmt)
-        total = total_result.scalar_one()
+        total = (await self.db.execute(count_stmt)).scalar_one()
 
         return {"data": responses, "total": total}
             

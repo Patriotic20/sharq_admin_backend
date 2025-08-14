@@ -31,6 +31,7 @@ async def get_study_info_form_filter(
     _: Annotated[User, Depends(require_roles(["admin"]))],
     query_passport: QueryUserDataFilterByPassport = Depends(),
     query_study: QueryUserDataFilterByStudy = Depends(),
+    search: str | None = Query(None),
     limit: int = Query(100),
     offset: int = Query(0),
 ):
@@ -42,6 +43,7 @@ async def get_study_info_form_filter(
         study_info_filter=study_info_filter,
         limit=limit,
         offset=offset,
+        search=search
     )
     return result
     
