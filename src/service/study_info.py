@@ -78,6 +78,7 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
             dtm_sheet=study_info.dtm_sheet,
             contract_paths=contract_paths,
             is_approved=len(contract_paths) > 0,
+            create_at=study_info.create_at
         )
 
     async def _to_response_with_names_optimized(self, study_info: StudyInfo) -> StudyInfoResponse:
