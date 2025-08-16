@@ -5,6 +5,7 @@ from src.schemas.study_info import StudyInfoResponse, StudyInfoCreate , StudyInf
 from src.schemas.user_data import UserDataFilterByPassportData , UserDataFilterByStudyInfo
 from dto.study_info_filter import QueryUserDataFilterByPassport , QueryUserDataFilterByStudy
 from src.core.db import get_db
+from fastapi.responses import StreamingResponse
 from sharq_models import User #type: ignore
 from src.utils.auth import require_roles
 from typing import Annotated
@@ -46,6 +47,19 @@ async def get_study_info_form_filter(
         search=search
     )
     return result
+    
+    
+@study_info_router.get("/study-info/excel")
+async def download_study_info_excel(
+    service: Annotated[StudyInfoCrud, Depends(get_service_crud)],
+    _: Annotated[User, Depends(require_roles(["admin"]))],
+):
+    stream = await service.export_to_excel()
+    return StreamingResponse(
+        stream,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=Student_ariza.xlsx"}
+    )
     
     
 @study_info_router.post("/create")

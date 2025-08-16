@@ -4,8 +4,8 @@ from sharq_models.models import User , PassportData , StudyLanguage , StudyForm 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func , and_ , or_
 from sqlalchemy.orm import joinedload  , selectinload
-
-
+import openpyxl
+import io
 
 
 from sharq_models.models import StudyInfo, Contract  # type: ignore
@@ -232,3 +232,77 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
 
 
 
+    async def export_to_excel(
+            self,
+            passport_filter: UserDataFilterByPassportData = None,
+            study_info_filter: UserDataFilterByStudyInfo = None,
+            search: str | None = None,
+            limit: int = 1000,
+            offset: int = 0,
+        ) -> io.BytesIO:
+            """
+            Export StudyInfo data with relations to an Excel file.
+            """
+            result = await self.get_all_study_info(
+                passport_filter=passport_filter,
+                study_info_filter=study_info_filter,
+                search=search,
+                limit=limit,
+                offset=offset,
+            )
+
+            study_infos = result["data"]
+
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "StudyInfo"
+
+            headers = [
+                "ID",
+                "User ID",
+                "First Name",
+                "Last Name",
+                "Third Name",
+                "Phone Number",
+                "Passport Number",
+                "JSHSHIR",
+                "Is Approved",
+                "Study Direction",
+                "Study Form",
+                "Study Type",
+                "Study Language",
+                "Education Type",
+                "Graduate Year",
+                "Certificate Path",
+                "DTM Sheet",
+                "Created At",
+            ]
+            ws.append(headers)
+
+            for info in study_infos:
+                passport = info.passport_data
+                ws.append([
+                    info.id,
+                    info.user_id,
+                    passport.first_name if passport else None,
+                    passport.last_name if passport else None,
+                    passport.third_name if passport else None,
+                    info.phone_number,
+                    passport.passport_series_number if passport else None,
+                    passport.jshshir if passport else None,
+                    info.is_approved,
+                    info.study_direction.name if info.study_direction else None,
+                    info.study_form.name if info.study_form else None,
+                    info.study_type.name if info.study_type else None,
+                    info.study_language.name if info.study_language else None,
+                    info.education_type.name if info.education_type else None,
+                    info.graduate_year,
+                    info.certificate_path,
+                    info.dtm_sheet,
+                    info.create_at,
+                ])
+
+            stream = io.BytesIO()
+            wb.save(stream)
+            stream.seek(0)
+            return stream
