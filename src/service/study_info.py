@@ -69,10 +69,12 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
             study_type=StudyTypeResponse.model_validate(
                 study_info.study_type, from_attributes=True
             ),
-            passport_data=PassportDataResponse.model_validate(
-                study_info.user.passport_data, from_attributes=True
+            passport_data=(
+                PassportDataResponse.model_validate(study_info.user.passport_data, from_attributes=True)
+                if study_info.user and study_info.user.passport_data
+                else None
             ),
-            phone_number=study_info.user.phone_number,
+            phone_number=study_info.user.phone_number if study_info.user else None,
             graduate_year=study_info.graduate_year,
             certificate_path=study_info.certificate_path,
             dtm_sheet=study_info.dtm_sheet,
