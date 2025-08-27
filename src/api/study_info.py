@@ -71,3 +71,14 @@ async def create_study_info(
     return await service.create_study_info(study_info_data=study_info)
 
 
+
+@study_info_router.delete("/delete")
+async def delete_study_info(
+    service: Annotated[StudyInfoCrud, Depends(get_service_crud)],
+    _: Annotated[User, Depends(require_roles(["admin"]))],
+    user_id: int | None = None,
+    study_info_id: int | None = None,
+    
+):
+    return await service.delete_study_info(user_id=user_id , study_info_id=study_info_id)
+    

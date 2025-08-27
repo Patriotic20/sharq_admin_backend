@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from datetime import date
+from datetime import  datetime
 from .study_language import StudyLanguageResponse
 from .study_form import StudyFormResponse
 from .study_direction import StudyDirectionResponse
@@ -43,7 +43,7 @@ class StudyInfoResponse(BaseModel):
     contract_paths: list[str] = [] 
     passport_data: PassportDataResponse | None = None
     phone_number: str | None
-    create_at: date
+    create_at: datetime
     
     model_config = ConfigDict(from_attributes=True)
 

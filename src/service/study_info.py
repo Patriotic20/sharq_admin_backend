@@ -2,7 +2,7 @@ import asyncio
 from fastapi import HTTPException
 from sharq_models.models import User , PassportData , StudyLanguage , StudyForm , StudyDirection , StudyType , EducationType # type: ignore
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func , and_ , or_
+from sqlalchemy import select, func , and_ , or_ , delete
 from sqlalchemy.orm import joinedload  , selectinload
 import openpyxl
 import io
@@ -308,3 +308,37 @@ class StudyInfoCrud(BasicCrud[StudyInfo, StudyInfoBase]):
             wb.save(stream)
             stream.seek(0)
             return stream
+
+    async def delete_study_info(
+            self,
+            user_id: int | None = None,
+            study_info_id: int | None = None,
+        ) -> bool:
+            """
+            Delete StudyInfo by either study_info_id or user_id.
+            Returns True if deleted, False if nothing was found.
+            """
+            if not user_id and not study_info_id:
+                raise ValueError("Either user_id or study_info_id must be provided")
+
+            query = select(StudyInfo)
+            if study_info_id:
+                query = query.where(StudyInfo.id == study_info_id)
+            elif user_id:
+                query = query.where(StudyInfo.user_id == user_id)
+
+            result = await self.db.execute(query)
+            study_info = result.scalar_one_or_none()
+
+            if not study_info:
+                return {
+                    "delete": False,
+                    "message": "StudyInfo not found"
+                }
+
+            await self.db.delete(study_info)
+            await self.db.commit()
+            return {
+                "delete": True,
+                "message": "Delete successfully"
+            }
